@@ -1,8 +1,8 @@
 import numpy as np
 from load_data import *
 from helper import *
-# def read
-
+import matplotlib.pyplot as plt
+import p4_util as util
 folder='./data/'
 lidar_file='train_lidar0'
 joint_file='train_joint0'
@@ -54,11 +54,11 @@ def getOdometryPara(lidarData,jointData): #head_angles_B: (n_joint,2)
 
     lidarPose_lidar_G=np.zeros([n_lidar,3]) #(n,3)
     rpy_imu_G=np.zeros([n_lidar,3]) #(n,3)
-    ts_lidar=np.zeros([n_lidar,3])
+    ts_lidar=np.zeros([n_lidar,1])
     for i in range(n_lidar):
-        lidarPose_lidar_G[i]=lidarData[i]['pose'][0,0]
+        lidarPose_lidar_G[i]=lidarData[i]['pose'][0]
         rpy_imu_G[i] = lidarData[i]['rpy'][0, 0]
-        ts_lidar=lidarData[i]['t'][0, 0]
+        ts_lidar[i]=lidarData[i]['t'][0, 0]
     rpy_imu_G = rpy_imu_G - rpy_imu_G[0]
     #match time
     ts_joint_raw=jointData['ts'].T
@@ -66,7 +66,7 @@ def getOdometryPara(lidarData,jointData): #head_angles_B: (n_joint,2)
     head_angles_H_B=jointData['head_angles'].T[ind_joint]#(n,2)yaw,pitch
 
     # contruct rot lider wrt imu
-    rot_H_B=rpy2rot(np.zeros(n_lidar,1),head_angles_H_B[:,1],head_angles_H_B[:,0])#(3,3,n) same with rot_lidar_imu
+    rot_H_B=rpy2rot(np.zeros(n_lidar),head_angles_H_B[:,1],head_angles_H_B[:,0])#(3,3,n) same with rot_lidar_imu
     # H_lidar_imu[:3,:3]=rot_H_B
     # H_lidar_imu[:,-1]=d_liar_imu
 
@@ -90,6 +90,12 @@ def getOdometryPara(lidarData,jointData): #head_angles_B: (n_joint,2)
     #
     # return pose
 
+def embedOdoNew(pose_new,lidarData):
+    n_lidar = len(lidarData)
+    for i in range(n_lidar):
+        lidarData[i]['pose'][0,-1]=pose_odo_new[i,-1]
+
+    return lidarData
 
 
 
@@ -97,4 +103,10 @@ def getOdometryPara(lidarData,jointData): #head_angles_B: (n_joint,2)
 if __name__ =='__main__':
     jointData,lidarData=getData(jointPath=folder+joint_file,lidarPath=folder+lidar_file)
 
-    pose_odo=getOdometryPara(lidarData,jointData)
+    pose_odo_new=getOdometryPara(lidarData,jointData)#(n, 3)
+
+    
+    # plt.scatter(pose_odo_new[:,0],pose_odo_new[:,1])
+    # plt.show()
+
+
