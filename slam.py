@@ -8,43 +8,13 @@ lidar_file='train_lidar0'
 joint_file='train_joint0'
 
 ##paras
+dis_lidar_H=0.15
 dis_H_mass=0.33
 dis_imu_mass=-16/100
+dis_mass_G=0.93
 
 
-# def matchTime(ts_lidar,ts_joint):
-#     if ts_lidar[0]<=ts_joint[0]:
-#
-#     return
-
-def getData(jointPath, lidarPath):
-
-    #get joint data
-    jointData = get_joint(jointPath)
-    # head_angles=jointData['head_angles']
-    # ts_joint=jointData['ts'].T
-
-    #get lidar data
-    lidarData=get_lidar(lidarPath)
-    # n_lidar=len(lidarData)
-
-    # ts_lidar=np.zeros([n_lidar,1])#(n,1)
-    # rpy=np.zeros([n_lidar,3])#(n,3)
-    # for i in range(n_lidar):
-    #     ts_lidar[i]=lidarData[i]['t'][0,0]
-    #     rpy[i]=lidarData[i]['rpy'][0,0]
-    # ind_joint_eff, ind_lidar_eff=findClosestTime(ts_joint,ts_lidar)
-
-    #extract info by useful timestamps
-    return jointData,lidarData
-
-
-
-
-
-    # return
-
-def getOdometryPara(lidarData,jointData): #head_angles_B: (n_joint,2)
+def getRelOdometry(lidarData,jointData): #head_angles_B: (n_joint,2)
     n_lidar=len(lidarData)
     rot_H_G =np.zeros([3,3,n_lidar])
     # d_liar_imu =np.array([0,0,dis_H_mass-dis_imu_mass,1])
@@ -67,8 +37,7 @@ def getOdometryPara(lidarData,jointData): #head_angles_B: (n_joint,2)
 
     # contruct rot lider wrt imu
     rot_H_B=rpy2rot(np.zeros(n_lidar),head_angles_H_B[:,1],head_angles_H_B[:,0])#(3,3,n) same with rot_lidar_imu
-    # H_lidar_imu[:3,:3]=rot_H_B
-    # H_lidar_imu[:,-1]=d_liar_imu
+
 
     # contruct rot imu wrt G
     rot_B_G=rpy2rot(rpy_imu_G[:,0],rpy_imu_G[:,1],rpy_imu_G[:,2])
@@ -89,13 +58,42 @@ def getOdometryPara(lidarData,jointData): #head_angles_B: (n_joint,2)
     #
     #
     # return pose
-
-def embedOdoNew(pose_new,lidarData):
+def calT(lidarData,jointData):
     n_lidar = len(lidarData)
-    for i in range(n_lidar):
-        lidarData[i]['pose'][0,-1]=pose_odo_new[i,-1]
+    T_H_G = np.zeros([4, 4, n_lidar])
+    T_H_B = np.zeros([4, 4, n_lidar])
+    T_B_G = np.zeros([4, 4, n_lidar])
 
-    return lidarData
+    #set d
+    d_H_B = np.array([0, 0, dis_H_mass, 1])
+    d_B_G = np.array([0, 0, dis_mass_G, 1])
+
+
+    lidarPose_lidar_G = np.zeros([n_lidar, 3])  # (n,3)
+    rpy_imu_G = np.zeros([n_lidar, 3])  # (n,3)
+    ts_lidar = np.zeros([n_lidar, 1])
+    for i in range(n_lidar):
+        lidarPose_lidar_G[i] = lidarData[i]['pose'][0]
+        rpy_imu_G[i] = lidarData[i]['rpy'][0, 0]
+        ts_lidar[i] = lidarData[i]['t'][0, 0]
+    rpy_imu_G = rpy_imu_G - rpy_imu_G[0]
+    # match time
+    ts_joint_raw = jointData['ts'].T
+    ind_joint = findClosestJointTime(ts_joint_raw, ts_lidar)
+    head_angles_H_B = jointData['head_angles'].T[ind_joint]  # (n,2)yaw,pitch
+
+    # contruct T H wrt B
+    rot_H_B = rpy2rot(np.zeros(n_lidar), head_angles_H_B[:, 1],
+                      head_angles_H_B[:, 0])  # (3,3,n) same with rot_lidar_imu
+
+    # contruct T B wrt G
+    rot_B_G = rpy2rot(rpy_imu_G[:, 0], rpy_imu_G[:, 1], rpy_imu_G[:, 2])
+    T_B_G[:3,:3,:]=rot_B_G
+    f
+
+
+    return T_H_B,T_B_G,T_H_G
+def mapping(scan):
 
 
 
@@ -103,10 +101,14 @@ def embedOdoNew(pose_new,lidarData):
 if __name__ =='__main__':
     jointData,lidarData=getData(jointPath=folder+joint_file,lidarPath=folder+lidar_file)
 
+
+
     pose_odo_new=getOdometryPara(lidarData,jointData)#(n, 3)
 
-    
-    # plt.scatter(pose_odo_new[:,0],pose_odo_new[:,1])
-    # plt.show()
+    lidarData=embedOdoNew(pose_odo_new,lidarData)
+    # util.replay_lidar(lidarData)
+    # visualize2D(pose_odo_new)
+    plt.scatter(pose_odo_new[:,0],pose_odo_new[:,1])
+    plt.show()
 
 
