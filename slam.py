@@ -14,6 +14,8 @@ dis_imu_mass=-16/100
 dis_mass_G=0.93
 
 
+ground_thre=0.1
+
 def getRelOdometry(lidarData_cur,lidarData_pre,T_H_B, T_B_G): #head_angles_B: (n_joint,2)
     lidarPose_lidar_G_cur, lidarPose_lidar_G_pre = lidarData_cur['pose'][0], lidarData_pre['pose'][0]
     # dlidarPose_lidar_G_cur=lidarPose_lidar_G_cur- lidarPose_lidar_G_pre
@@ -67,12 +69,22 @@ def calT(jointData,lidarData_cur,lidarData_pre,lidarData_0):
     return T_H_B,T_B_G,T_H_G,ind_joint
 # def mapping(scan):
 #
-def correctLidar(jointData,ind_joint,lidarData_current):
-    head_angles_H_B = jointData['head_angles'].T[ind_joint]  # (n,2)yaw,pitch
-    
+def correctScan(lidarData_current,T_H_G):
+    # head_angles_H_B = jointData['head_angles'].T[ind_joint]  # (n,2)yaw,pitch
+    scan_raw=lidarData_current['scan'][0]
+    n_scan=len(scan_raw)
+    gamma=np.arange(-135,136,0.25)
+    scan_pts_lidar=scan_raw.reshape(-1,1).dot(np.array([np.cos(gamma),np.sin(gamma)]).reshape(1,2))
+    scan_pts_H=np.zeros([n_scan,3])
+    scan_pts_H[:,:2] = scan_pts_lidar
+    scan_pts_H[-1]=dis_lidar_H
+    scan_G = T_H_G.dot(scan_pts_H)
+    valid=scan_G[:,-1]>ground_thre
 
+    return scan_G,valid #(3, )
 
-
+def mapping(scan_H,T_H_G):
+    scan_G=T_H_G.dot(scan_H)
 
 
 def slam(jointData, lidarData_current, lidarData_previous,lidarData_0):
@@ -83,7 +95,8 @@ def slam(jointData, lidarData_current, lidarData_previous,lidarData_0):
     T_H_B, T_B_G, T_H_G,ind_joint=calT(jointData, lidarData_current,lidarData_previous,lidarData_0)
     pose_odo_new=getRelOdometry(lidarData_current,lidarData_previous,T_H_B,T_B_G)#(n, 2), list, list
 
-    lidarData=correctLidar(jointData,ind_joint,lidarData_current)
+    scan_G,valid=correctScan(lidarData_current,T_H_G)
+    mapping(scan_pts_H,T_H_G)
     # util.replay_lidar(lidarData)
     # visualize2D(pose_odo_new)
     plt.scatter(pose_odo_new[:,0],pose_odo_new[:,1])
