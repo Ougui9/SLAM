@@ -85,12 +85,12 @@ def visualize2D(pose):
         plt.draw()
         plt.pause(0.001)
 
-def embedOdoNew(pose_new,lidarData):
-    n_lidar = len(lidarData)
-    for i in range(n_lidar):
-        lidarData[i]['pose'][0,-1]=pose_new[i,-1]
-
-    return lidarData
+# def embedOdoNew(pose_new,lidarData):
+#     n_lidar = len(lidarData)
+#     for i in range(n_lidar):
+#         lidarData[i]['pose'][0,-1]=pose_new[i,-1]
+#
+#     return lidarData
 
 def getData(jointPath, lidarPath):
 
