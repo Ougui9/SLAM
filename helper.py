@@ -115,3 +115,34 @@ def getData(jointPath, lidarPath):
 
 def sigmoid(x,a,c):
   return 1 / (1 + np.exp(-a*(x-c)))
+
+def smartPlus(x1,x0):
+    '''
+    :param x1: (3,1)
+    :param x0: (3,1)
+    :return: (3,1)
+    '''
+    res=np.zeros([3,1])
+    R0=Rot(x0[-1])
+    res[:2]=x0[:2]+R0.dot(x1[:2])
+    res[-1]=x0[-1]+x1[-1]
+
+    return res
+
+def smartMinus(x1,x0):
+    '''
+        :param x1: (3,1)
+        :param x0: (3,1)
+        :return: (3,1)
+        '''
+    res = np.zeros([3, 1])
+    R0 = Rot(x0[-1])
+    res[:2] = R0.dot(x1[:2]-x0[:2])
+    res[-1] = x1[-1] - x0[-1]
+
+    return res
+
+
+def Rot(theta):
+    R=np.array([[np.cos(theta),-np.sin(theta)],[np.sin(theta),np.cos(theta)]])
+    return R

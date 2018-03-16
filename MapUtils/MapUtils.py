@@ -77,6 +77,6 @@ def getMapCellsFromRay(x0t,y0t,xis,yis):
 				if error < 0:
 					y += ystep
 					error += deltax
-	return xyio
+	return xyio.astype(int)
 
 

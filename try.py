@@ -12,6 +12,12 @@ p11 = 0.65# P(occupied|measured occupied);
 p00 = 0.7# P(free|measured free);
 
 
+# def dead_reckon(o0,o1):
+#
+#
+#     return p_cur
+
+
 if __name__=='__main__':
     jointData, lidarData = getData(jointPath=folder + joint_file, lidarPath=folder + lidar_file)
     n_lidar=len(lidarData)
@@ -19,9 +25,10 @@ if __name__=='__main__':
     lidarData_0=lidarData[0]
 
     #x0, y0, yaw0 best particle
-    x0 = lidarData_0['pose'][0,0]
-    y0 = lidarData_0['pose'][0,1]
-    yaw0 = lidarData_0['pose'][0,2]
+    pose_odo_pre =lidarData_0['pose'][0]
+    x0 = pose_odo_pre[0]
+    y0 = pose_odo_pre[1]
+    yaw0 = pose_odo_pre[2]
 
 
     particles=ini_particles(x0,y0,yaw0,n_sample)
@@ -31,7 +38,6 @@ if __name__=='__main__':
 
     # sx, sy, syaw=sxyyaw[:,0], sxyyaw[:,1], sxyyaw[:,2]
     # sweights = np.ones([n_sample, 1]) / n_sample
-
     for i in range(n_lidar):
         lidarData_current=lidarData[i]
         lidarData_previous=lidarData[i-1]if i>0 else lidarData[i]
@@ -48,5 +54,9 @@ if __name__=='__main__':
 
 
         #mapping
-        MAP=mapping(range_G, angles,valid_pro,MAP,logodd)
+        MAP,logodd=mapping(range_G,valid_pro,pose_odo_new,MAP,logodd)
+
+        #localization
+        particles=locPrediction(particles,pose_odo_new.reshape(-1,1), pose_odo_pre.reshape(-1,1))
+
 

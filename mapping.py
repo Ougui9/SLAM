@@ -21,8 +21,8 @@ def iniLogOdd(sizex,sizey,thres,p11,p00):
     logodd['p01'] = 1-p11   # P(free|measured occupied)
     logodd['p00']= p00 # P(free | measured free);
     logodd['p10'] = 1 - p00 # P(occupied | measured free);
-    logodd['logodd_occ'] = np.log(logodd.p11 / logodd.p10); # > 0
-    logodd['logodd_free'] = np.log(logodd.p01 / logodd.p00); # < 0
+    logodd['logodd_occ'] = np.log(logodd['p11'] / logodd['p10']) # > 0
+    logodd['logodd_free'] = np.log(logodd['p01'] / logodd['p00']) # < 0
     logodd['logodd_max'] = np.log(thres)
     logodd['logodd_min'] = -np.log(thres)
     logodd[thres] = thres
@@ -51,7 +51,7 @@ def updateMAP_logodd(MAP,logodd,xcell_free,ycell_free,xcell_hit,ycell_hit):
     logodd['odd'][xcell_free, ycell_free] += logodd['logodd_free']
     logodd['odd'][xcell_free, ycell_free] = np.maximum(logodd['odd'][xcell_free, ycell_free], logodd['logodd_min'])
     logodd['odd'][xcell_hit, ycell_hit] += logodd['logodd_occ']
-    logodd['odd'][xcell_hit, ycell_hit] = np.minimum(logodd['odd'][xcell_free, ycell_free], logodd['logodd_max'])
+    logodd['odd'][xcell_hit, ycell_hit] = np.minimum(logodd['odd'][xcell_hit, ycell_hit], logodd['logodd_max'])
 
     # MAP['map']=sigmoid(logodd['odd'],20,0)
     MAP['map'][logodd['odd']>0]=1#occ
@@ -107,11 +107,11 @@ def mapping(ranges_pts_G,valid_pro,pose_cur,MAP,logodd):#ranges:(n, 3)
     pose_ycell=np.ceil((pose_cur[1] - MAP['xmin']) / MAP['res']).astype(np.int16) - 1
 
     #get believed free cells
-    xycell_free=getMapCellsFromRay(pose_xcell,pose_ycell,xind_map_pro,yind_map_pro)
+    xycell_free=getMapCellsFromRay(pose_xcell,pose_ycell,xind_map_pro[0],yind_map_pro[0])
 
     #update occu map and logodd
     # MAP['odd']=+
-    MAP, logodd=updateMAP_logodd(MAP,logodd,xycell_free[:,0],xycell_free[:,1],xind_map_pro,yind_map_pro)
+    MAP, logodd=updateMAP_logodd(MAP,logodd,xycell_free[0],xycell_free[1],xind_map_pro[0],yind_map_pro[0])
 
     return MAP,logodd
     # #Correlation
