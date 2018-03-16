@@ -2,10 +2,8 @@ import numpy as np
 
 from helper import *
 import matplotlib.pyplot as plt
+from mapping import mapping
 import p4_util as util
-folder='./data/'
-lidar_file='train_lidar0'
-joint_file='train_joint0'
 
 ##paras
 dis_lidar_H=0.15
@@ -69,43 +67,42 @@ def calT(jointData,lidarData_cur,lidarData_pre,lidarData_0):
     return T_H_B,T_B_G,T_H_G,ind_joint
 # def mapping(scan):
 #
-def correctScan(lidarData_current,T_H_G):
+def correctRange(lidarData_current,T_H_G):
     # head_angles_H_B = jointData['head_angles'].T[ind_joint]  # (n,2)yaw,pitch
-    scan_raw=lidarData_current['scan'][0]
-    n_scan=len(scan_raw)
-    valid_c = list(n_scan > np.mean(n_scan) / 10)
-    valid_f = list(n_scan < np.mean(n_scan) * 5)
-    gamma=np.arange(-135,136,0.25)
-    scan_pts_lidar=scan_raw.reshape(-1,1).dot(np.array([np.cos(gamma),np.sin(gamma)]).reshape(1,2))
-    scan_pts_H=np.zeros([n_scan,3])
-    scan_pts_H[:,:2] = scan_pts_lidar
-    scan_pts_H[-1]=dis_lidar_H
-    scan_G = T_H_G.dot(scan_pts_H)
-    valid_g=list(scan_G[:,-1]>ground_thre)
-    valid=set(valid_c+valid_g+valid_f)
+    range_raw=lidarData_current['scan'][0]
+    n_range=len(range_raw)
+    valid_c = range_raw > 0.1
+    valid_f = range_raw < 30
+    angles=np.arange(-135,135.25,0.25)*np.pi/180.
+    range_pts_lidar=range_raw.reshape(-1,1)*np.array([np.cos(angles),np.sin(angles)]).T
+    range_pts_H=np.zeros([n_range,3])
+    range_pts_H[:,:2] = range_pts_lidar
+    range_pts_H[-1]=dis_lidar_H
+    range_pts_G = T_H_G.dot(np.concatenate((range_pts_H.T,np.ones([1,n_range])),axis=0))[:3].T
+    valid_g=range_pts_G[:,-1]>ground_thre
+    valid=np.logical_and(np.logical_and(valid_c,valid_g),valid_f)
+    scan_pts_G=range_pts_G[valid]
+    angles=angles[valid]
     # array_unique(array_merge($array1,$array2), SORT_REGULAR)
-    return scan_G,valid #(3, )
-
-# def iniOccuMap():
+    return range_pts_G,angles,valid #(n,3),(n,)
 
 
-def mapping(scan_H,T_H_G):
-    scan_G=T_H_G.dot(scan_H)
 
-
-def slam(jointData, lidarData_current, lidarData_previous,lidarData_0):
-
-    # if lidarData_previous==None:
-    #     lidarData_previous=lidarData_current
-
-    T_H_B, T_B_G, T_H_G,ind_joint=calT(jointData, lidarData_current,lidarData_previous,lidarData_0)
-    pose_odo_new=getRelOdometry(lidarData_current,lidarData_previous,T_H_B,T_B_G)#(n, 2), list, list
-
-    scan_G,valid=correctScan(lidarData_current,T_H_G)
+# def slam(jointData, lidarData_current, lidarData_previous,lidarData_0):
+#
+#     # if lidarData_previous==None:
+#     #     lidarData_previous=lidarData_current
+#
+#     T_H_B, T_B_G, T_H_G,ind_joint=calT(jointData, lidarData_current,lidarData_previous,lidarData_0)
+#     pose_odo_new=getRelOdometry(lidarData_current,lidarData_previous,T_H_B,T_B_G)#(n, 2), list, list
+#
+#     range_pts_G,angles,valid=correctScan(lidarData_current,T_H_G)
+#     mapping(range_pts_G,angles)
+    # mapping(lidarData_current['scan'].T,np.array([np.arange(-135,135.25,0.25)*np.pi/180.]).T)
     # mapping(scan_pts_H,T_H_G)
     # util.replay_lidar(lidarData)
     # visualize2D(pose_odo_new)
-    plt.scatter(pose_odo_new[:,0],pose_odo_new[:,1])
-    plt.show()
+    # plt.scatter(pose_odo_new[:,0],pose_odo_new[:,1])
+    # plt.show()
 
 
