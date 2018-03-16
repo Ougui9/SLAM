@@ -21,14 +21,14 @@ def mapCorrelation(im, x_im, y_im, vp, xs, ys):
 	nxs = xs.size
 	nys = ys.size
 	cpr = np.zeros((nxs, nys))
-	for jy in range(0,nys):
-		y1 = vp[1,:] + ys[jy] # 1 x 1076
-		iy = np.int16(np.round((y1-ymin)/yresolution))
-	for jx in range(0,nxs):
-		x1 = vp[0,:] + xs[jx] # 1 x 1076
-		ix = np.int16(np.round((x1-xmin)/xresolution))
-		valid = np.logical_and(np.logical_and((iy >=0), (iy < ny)),np.logical_and((ix >=0), (ix < nx)))
-		cpr[jx,jy] = np.sum(im[ix[valid],iy[valid]])
+	for jy in range(0, nys):
+		y1 = vp[1, :] + ys[jy]  # 1 x 1076
+		iy = np.int16(np.round((ymax - y1) / yresolution))  # changed from (y1-ymin)
+		for jx in range(0, nxs):
+			x1 = vp[0, :] + xs[jx]  # 1 x 1076
+			ix = np.int16(np.round((x1 - xmin) / xresolution))
+			valid = np.logical_and(np.logical_and((iy >= 0), (iy < ny)),np.logical_and((ix >= 0), (ix < nx)))
+			cpr[jx, jy] = np.sum(im[iy[valid], ix[valid]])  # SWITCHED ix AND iy
 	return cpr
 
 

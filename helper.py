@@ -112,3 +112,6 @@ def getData(jointPath, lidarPath):
 
     #extract info by useful timestamps
     return jointData,lidarData
+
+def sigmoid(x,a,c):
+  return 1 / (1 + np.exp(-a*(x-c)))

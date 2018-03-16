@@ -80,11 +80,12 @@ def correctRange(lidarData_current,T_H_G):
     range_pts_H[-1]=dis_lidar_H
     range_pts_G = T_H_G.dot(np.concatenate((range_pts_H.T,np.ones([1,n_range])),axis=0))[:3].T
     valid_g=range_pts_G[:,-1]>ground_thre
-    valid=np.logical_and(np.logical_and(valid_c,valid_g),valid_f)
-    scan_pts_G=range_pts_G[valid]
-    angles=angles[valid]
+    valid_pro=np.logical_and(np.logical_and(valid_c,valid_g),valid_f)
+    # scan_pts_G=range_pts_G[valid]
+    # angles=angles[valid]
+    valid_cor=np.logical_and(valid_pro,range_raw < 15)
     # array_unique(array_merge($array1,$array2), SORT_REGULAR)
-    return range_pts_G,angles,valid #(n,3),(n,)
+    return range_pts_G,angles,valid_pro, valid_cor #(n,3),(n,)
 
 
 
@@ -106,3 +107,4 @@ def correctRange(lidarData_current,T_H_G):
     # plt.show()
 
 
+# def ini_particles()
