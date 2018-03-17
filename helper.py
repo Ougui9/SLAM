@@ -14,39 +14,11 @@ def findClosestJointTime(ts_joint_raw,ts_lidar_cur):
     :return:
     '''
     n_joint,_=ts_joint_raw.shape
-    # ind_joint_new=[]
-    # for i in range(n_lidar):
+
     diff=abs(ts_joint_raw-ts_lidar_cur)
     ind_joint_new=np.argmin(diff)
     return ind_joint_new
-    # ind_joint=[]
-    # # ind_lidar=[]
-    #
-    # n_lidar,_=ts_lidar.shape
-    # n_joint,_=ts_joint.shape
-    # if ts_joint[0]<=ts_lidar[0]:
-    #     for i in range(n_lidar):
-    #         ind_curjoint=0
-    #         while ts_joint[ind_curjoint]<ts_lidar[i]:
-    #             ind_curjoint+=1
-    #             if ind_curjoint>=n_joint:
-    #                 ind_joint.append(ind_curjoint-1)
-    #                 break
-    #     ind_lidar=np.arange(n_lidar)
-    # else:
-    #     ind_startlidar=0
-    #     while ts_joint[0]>ts_lidar[ind_startlidar]:
-    #         ind_startlidar+=1
-    #     for i in range(ind_startlidar,n_lidar):
-    #         ind_curjoint=0
-    #         while ts_joint[ind_curjoint]<ts_lidar[i]:
-    #             ind_curjoint+=1
-    #             if ind_curjoint>=n_joint:
-    #                 ind_joint.append(ind_curjoint-1)
-    #                 break
-    #     ind_lidar = np.arange(ind_startlidar,n_lidar)
-    #
-    # return ind_joint,ind_lidar
+
 
 def rpy2rot(r,p,y):
     rot=np.zeros([3,3])

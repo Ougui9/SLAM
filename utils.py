@@ -87,27 +87,6 @@ def correctRange(range_raw,T_H_G):
     return range_pts_G,valid_pro, valid_cor #(n,3),(n,)
 
 
-
-# def slam(jointData, lidarData_current, lidarData_previous,lidarData_0):
-#
-#     # if lidarData_previous==None:
-#     #     lidarData_previous=lidarData_current
-#
-#     T_H_B, T_B_G, T_H_G,ind_joint=calT(jointData, lidarData_current,lidarData_previous,lidarData_0)
-#     pose_odo_new=getRelOdometry(lidarData_current,lidarData_previous,T_H_B,T_B_G)#(n, 2), list, list
-#
-#     range_pts_G,angles,valid=correctScan(lidarData_current,T_H_G)
-#     mapping(range_pts_G,angles)
-    # mapping(lidarData_current['scan'].T,np.array([np.arange(-135,135.25,0.25)*np.pi/180.]).T)
-    # mapping(scan_pts_H,T_H_G)
-    # util.replay_lidar(lidarData)
-    # visualize2D(pose_odo_new)
-    # plt.scatter(pose_odo_new[:,0],pose_odo_new[:,1])
-    # plt.show()
-
-
-# def ini_particles()
-
 def calT_h_b(ts1,joint):
     T_H_B = np.zeros([4, 4])
     # match time

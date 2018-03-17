@@ -4,12 +4,19 @@ from MapUtils.MapUtils import *
 from utils import cal_T_b_g,rangeRaw2rangeH,rangeH2rangeG
 from mapping import angles
 
-n_sample=100
-process_var = np.array([1,1,5])*1e-5
+n_sample=50
+# process_var = np.array([1,1,5])*1e-5
+
+# w=np
+W = np.array([[1E-5, 0, 0],
+              [0, 1E-5, 0],
+              [0, 0, 5E-5]])
+
+
 
 def ini_particles(x0,y0,yaw0,n_sample):
     particles = {}
-    sxyyaw = np.random.normal([x0, y0, yaw0], [0, 0, 0], (n_sample, 3))
+    sxyyaw = np.random.multivariate_normal(mean=[x0,y0,yaw0],cov=np.zeros([3,3]),size=n_sample)
     particles['sx'] = sxyyaw[:, 0]
     particles['sy'] = sxyyaw[:, 1]
     particles['syaw'] = sxyyaw[:, 2]
@@ -27,8 +34,12 @@ def localizationPrediction(particles,pose_cur, pose_pre):
     ppose0[1] = particles['sy']
     ppose0[2] = particles['syaw']
     ppose1=np.zeros_like(ppose0)
+    w_xy = np.random.multivariate_normal(mean=np.zeros(2), cov=W[:2,:2], size=n_sample)
+    w_yaw=np.random.normal(0,W[-1,-1],(n_sample,1))
+    w=np.concatenate((w_xy,w_yaw),axis=1)
     for i in range(n_sample):
-        ppose1[:,i] = smartPlus(ppose0[:,i].reshape(-1,1), smartMinus(pose_cur, pose_pre))[:,0]
+
+        ppose1[:,i] = smartPlus(smartPlus(ppose0[:,i].reshape(-1,1), smartMinus(pose_cur, pose_pre)),w[i].reshape(-1,1))[:,0]
     
 
 
