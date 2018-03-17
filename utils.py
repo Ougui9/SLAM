@@ -67,9 +67,9 @@ def calT(jointData,lidarData_cur,lidarData_pre,lidarData_0):
     return T_H_B,T_B_G,T_H_G,ind_joint
 # def mapping(scan):
 #
-def correctRange(lidarData_current,T_H_G):
+def correctRange(range_raw,T_H_G):
     # head_angles_H_B = jointData['head_angles'].T[ind_joint]  # (n,2)yaw,pitch
-    range_raw=lidarData_current['scan'][0]
+    # range_raw=lidarData_current['scan'][0]
     n_range=len(range_raw)
     valid_c = range_raw > 0.1
     valid_f = range_raw < 30
@@ -85,7 +85,7 @@ def correctRange(lidarData_current,T_H_G):
     # angles=angles[valid]
     valid_cor=np.logical_and(valid_pro,range_raw < 15)
     # array_unique(array_merge($array1,$array2), SORT_REGULAR)
-    return range_pts_G,angles,valid_pro, valid_cor #(n,3),(n,)
+    return range_pts_G,valid_pro, valid_cor #(n,3),(n,)
 
 
 
@@ -108,3 +108,42 @@ def correctRange(lidarData_current,T_H_G):
 
 
 # def ini_particles()
+
+def calT_h_b(ts1,joint):
+    T_H_B = np.zeros([4, 4])
+    # match time
+    ts_joint_raw = joint['ts'].T
+    # ts_lidar0 = lidar1['t'][0, 0]
+    ind_joint = findClosestJointTime(ts_joint_raw, ts1)
+    head_angles_H_B = joint['head_angles'].T[ind_joint]  # (n,2)yaw,pitch
+
+    rot_H_B = rpy2rot(0, head_angles_H_B[1], head_angles_H_B[0])  # (3,3,n) same with rot_lidar_imu
+    d_H_B = np.array([0, 0, dis_H_mass, 1])
+    T_H_B[:3, :3] = rot_H_B
+    T_H_B[:, -1] = d_H_B
+    return T_H_B
+
+
+def cal_T_b_g(x_p_best,y_p_best,rpy_unbiased):
+    T_B_G = np.zeros([4, 4])
+    # rpy_imu_G_1, rpy_imu_G_0 = lidar1['rpy'][0], lidar0['rpy'][0]
+    # rpy_imu_G_cur_unbais = rpy_imu_G_1 - rpy_imu_G_0
+
+    rot_B_G = rpy2rot(rpy_unbiased[0], rpy_unbiased[1], rpy_unbiased[2])
+
+    d_B_G = np.array([x_p_best, y_p_best, dis_mass_G, 1])  # ???
+
+    T_B_G[:3, :3] = rot_B_G
+    T_B_G[:, -1] = d_B_G
+
+    return T_B_G
+
+def rangeRaw2G(range_raw,angles,T_H_G):
+    n_range = len(range_raw)
+    range_H = np.zeros([n_range, 3])
+    range_lidar = range_raw.reshape(-1, 1) * np.array([np.cos(angles), np.sin(angles)]).T
+    range_H[:, :2] = range_lidar
+    range_H[-1] = dis_lidar_H
+    range_G = T_H_G.dot(np.concatenate((range_H.T, np.ones([1, n_range])), axis=0))[:3].T
+
+    return range_G
