@@ -57,38 +57,11 @@ if __name__=='__main__':
     MAP = iniMap(res, xmin, xmax, ymin, ymax)
     logodd=iniLogOdd(MAP['sizex'],MAP['sizey'],logodd_thre,p11,p00)
 
-
-    # sx, sy, syaw=sxyyaw[:,0], sxyyaw[:,1], sxyyaw[:,2]
-    # sweights = np.ones([n_sample, 1]) / n_sample
-    for i in range(0,n_lidar):
-        # lidarData_current=lidarData[i]
-        # lidarData_previous=lidarData[i-1]if i>0 else lidarData[i]
-        #
-        # # compute Tranformation
-        # T_H_B, T_B_G, T_H_G, ind_joint = calT(jointData, lidarData_current, lidarData_previous, lidarData_0)
-        #
-        # #correct lidar pose
-        # pose_odo_new = getRelOdometry(lidarData_current, lidarData_previous, T_H_B, T_B_G)  # (n, 2), list, list
-        #
-        # #correct range
-        # range_G, valid_pro,valid_cor= correctRange(lidarData_current['scan'][0], T_H_G)#unfiltered
-        #
-        #
-        #
-        # #mapping
-        # MAP,logodd=mapping(range_G,valid_pro,pose_odo_new,MAP,logodd)
-        #
-        # #localization
-        #
-        # ##loca prediciton, update particles location
-        # particles=locPrediction(particles,pose_odo_new.reshape(-1,1), pose_odo_pre.reshape(-1,1))
-        #
-        # ##get map correlation matrix
-        # cs = mapCorrelation(MAP[',)
-        #
-        # ##update sample weights
-        # particles=update_sweight(particles,cs)
-
+    # plt.figure()
+    plt.ion()
+    fig, ax = plt.subplots()
+    for i in range(1000,n_lidar):
+        print(i)
 
         #target for this loop is 1
         lidar1 = lidarData[i]
@@ -104,6 +77,14 @@ if __name__=='__main__':
 
 
         particles, MAP, logodd=SLAM(particles,lidarData[i]['scan'][0], MAP, logodd,T_h_b, pose0,pose1,rpy_unbiased)
+
+        #visualize
+
+        plt.imshow(MAP['map'])
+        # if np.mod(i,10)==0:
+        #     # print(i)
+        plt.pause(0.05)
+        plt.draw()
 
 
 

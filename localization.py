@@ -64,51 +64,42 @@ def localizationUpdate(particles,range_raw,MAP,T_h_b,rpy):
         c=mapCorrelation(MAP['map'],MAP['xcell_phy'],MAP['ycell_phy'],Y[:3],xrange_map,yrange_map)
         cs[i]=np.linalg.norm(c)
     particles['sweight']*=cs
-    particles['sweight']/=np.sum(particles['sweight'])
-    particles['sweight'][np.isnan(particles['sweight'])]=np.ones([n_sample]) / n_sample
+    sum_sw=np.sum(particles['sweight'])
+    if sum_sw==0:
+        particles['sweight']=np.ones([n_sample]) / n_sample
+    else:
+        particles['sweight']/=np.sum(particles['sweight'])
+    # particles['sweight'][np.isnan(particles['sweight'])]=np.ones([n_sample]) / n_sample
 
 
     #check Neff
     Neff=np.sum(particles['sweight'])/(particles['sweight'].dot(particles['sweight']))
 
     if Neff<0.7*n_sample:
-        resample(particles['sweight'], n_sample)
+        ind_resample=resample(particles['sweight'])
+        particles['sx']=particles['sx'][ind_resample]
+        particles['sy'] = particles['sy'][ind_resample]
+        particles['syaw'] = particles['syaw'][ind_resample]
+        particles['sweight'] = particles['sweight'][ind_resample]
+        particles['sweight']/=np.sum(particles['sweight'])
 
 
+    return particles
 
-
-
-
-
-
-
-    return
-
-def resample(weights,n_sample):
-
+def resample(weights):
+    n_sample=len(weights)
     wsum=np.cumsum(weights)
     wsum/=wsum[-1]
 
-    np.random.rand(1,n_sample)
+    r=np.random.rand(1,n_sample)
+    indsort=np.argsort(np.concatenate([wsum,r]))
+
+    s=np.concatenate([np.ones(n_sample),np.zeros(n_sample)])
+    s=s[indsort]
+    ssum=np.cumsum(s)
+    index=ssum[s==0]+1
     return index
 
-
-
-
-
-# def getMapCorr(MAP,range_G,valid_c):
-#     # x_im=MAP['xcell_phy']
-#     # len(particles['sx']
-#     cs = np.zeros([n_sample, 1])
-#     for i in range(n_sample):
-#         c=mapCorrelation(MAP['map'],x_im=MAP['xcell_phy'],y_im=MAP['ycell_phy'],vp=,xs=,ys=)
-#         cs[i]=np.linalg.norm(c)
-#     return cs
-
-# def update_sweight(particles,cs):
-#     particles['sweight']*=cs
-#     particles['sweight']/=np.sum(particles['sweight'])
-#     return particles
 
 def chooseBestParticle(sweight):
     return np.argmax(sweight,axis=0)
