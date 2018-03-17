@@ -2,8 +2,7 @@ import numpy as np
 
 from helper import *
 import matplotlib.pyplot as plt
-from mapping import mapping
-import p4_util as util
+
 
 ##paras
 dis_lidar_H=0.15
@@ -138,12 +137,16 @@ def cal_T_b_g(x_p_best,y_p_best,rpy_unbiased):
 
     return T_B_G
 
-def rangeRaw2G(range_raw,angles,T_H_G):
+def rangeH2rangeG(range_H,T_H_G):
+    n_range = len(range_H)
+    range_G = T_H_G.dot(np.concatenate((range_H.T, np.ones([1, n_range])), axis=0))[:3].T
+
+    return range_G
+
+def rangeRaw2rangeH(range_raw,angles):
     n_range = len(range_raw)
     range_H = np.zeros([n_range, 3])
     range_lidar = range_raw.reshape(-1, 1) * np.array([np.cos(angles), np.sin(angles)]).T
     range_H[:, :2] = range_lidar
     range_H[-1] = dis_lidar_H
-    range_G = T_H_G.dot(np.concatenate((range_H.T, np.ones([1, n_range])), axis=0))[:3].T
-
-    return range_G
+    return range_H

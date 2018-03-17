@@ -11,7 +11,7 @@ joint_file='train_joint0'
 logodd_thre=500
 p11 = 0.65# P(occupied|measured occupied);
 p00 = 0.7# P(free|measured free);
-
+# angles = np.arange(-135, 135.25, 0.25) * np.pi / 180.
 
 # def dead_reckon(o0,o1):
 #
@@ -26,10 +26,12 @@ def SLAM(particles,range_raw, MAP,logodd,T_h_b, pose0,pose1, rpy_unbiased):
 
     MAP,logodd=mapping(range_raw,p_best,T_h_b,MAP,logodd,rpy_unbiased)
 
-    particles=localizationPrediction(particles,pose0,pose1)
+
+    particles=localizationPrediction(particles,pose1.reshape(-1,1),pose0.reshape(-1,1))
 
 
-    particles=localizationUpdate(particles,range_raw,MAP,T_h_b)
+    particles=localizationUpdate(particles,range_raw,MAP,T_h_b,rpy_unbiased)
+
 
     return particles, MAP,logodd
 
@@ -98,7 +100,7 @@ if __name__=='__main__':
 
 
         #cal T_h_b
-        T_h_b=calT_h_b(lidar1[i]['t'][0,0],jointData)
+        T_h_b=calT_h_b(lidar1['t'][0,0],jointData)
 
 
         particles, MAP, logodd=SLAM(particles,lidarData[i]['scan'][0], MAP, logodd,T_h_b, pose0,pose1,rpy_unbiased)

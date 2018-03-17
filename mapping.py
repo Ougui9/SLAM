@@ -1,9 +1,9 @@
 import numpy as np
 from MapUtils.MapUtils import getMapCellsFromRay
 import matplotlib.pyplot as plt
-from helper import sigmoid
-from utils import cal_T_b_g,rangeRaw2G
-
+# from helper import sigmoid
+from utils import cal_T_b_g,rangeH2rangeG,rangeRaw2rangeH
+# from
 
 # init MAP
 
@@ -13,7 +13,7 @@ xmax=20
 ymin=-20
 ymax=20
 occFactor=1/9
-
+angles = np.arange(-135, 135.25, 0.25) * np.pi / 180.
 
 def iniLogOdd(sizex,sizey,thres,p11,p00):
     logodd={}
@@ -76,14 +76,16 @@ def mapping(range_raw,p_best,T_h_b,MAP,logodd,rpy_unbiased):#ranges:(n, 3)
     #Transform ranges form H frame to G frame
     T_b_g=cal_T_b_g(p_best[0],p_best[1],rpy_unbiased)
     angles = np.arange(-135, 135.25, 0.25) * np.pi / 180.
-    range_G = rangeRaw2G(range_raw, angles, T_b_g.dot(T_h_b))
+    range_H=rangeRaw2rangeH(range_raw,angles)#(n,4)
+    range_G=rangeH2rangeG(range_H,T_b_g.dot(T_h_b))
+    # range_G = rangeRaw2G(range_raw, angles, T_b_g.dot(T_h_b))
 
     #remove invalid ranges
     indValid_cf = np.logical_and((range_raw < 30), (range_raw > 0.1))
     indValid_ground=range_G[:,-1]>0.1
     indValid=np.logical_and(indValid_cf,indValid_ground)
-    range_G=range_G[:,indValid]
-    angles=angles[indValid]
+    range_G=range_G[indValid]
+    # angles=angles[indValid]
 
     #convert phy corrds to map corr
     xrange_map = np.ceil((range_G[:,0] - MAP['xmin']) / MAP['res']).astype(np.int16) - 1

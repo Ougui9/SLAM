@@ -113,8 +113,8 @@ def getData(jointPath, lidarPath):
     #extract info by useful timestamps
     return jointData,lidarData
 
-def sigmoid(x,a,c):
-  return 1 / (1 + np.exp(-a*(x-c)))
+# def sigmoid(x,a,c):
+#   return 1 / (1 + np.exp(-a*(x-c)))
 
 def smartPlus(x1,x0):
     '''
@@ -123,7 +123,7 @@ def smartPlus(x1,x0):
     :return: (3,1)
     '''
     res=np.zeros([3,1])
-    R0=Rot(x0[-1])
+    R0=Rot(x0[-1,0])
     res[:2]=x0[:2]+R0.dot(x1[:2])
     res[-1]=x0[-1]+x1[-1]
 
@@ -136,8 +136,8 @@ def smartMinus(x1,x0):
         :return: (3,1)
         '''
     res = np.zeros([3, 1])
-    R0 = Rot(x0[-1])
-    res[:2] = R0.dot(x1[:2]-x0[:2])
+    R0 = Rot(x0[-1,0])
+    res[:2] = R0.dot((x1[:2]-x0[:2]).reshape(-1,1))
     res[-1] = x1[-1] - x0[-1]
 
     return res
