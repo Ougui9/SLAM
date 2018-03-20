@@ -2,14 +2,17 @@ from helper import *
 from utils import *
 from mapping import *
 from localization import *
+import pickle
 # from MapUtils.MapUtils import *
 
 folder='./data/'
-lidar_file='train_lidar0'
-joint_file='train_joint0'
+NoFile=2
+lidar_file='train_lidar'+str(NoFile)
+joint_file='train_joint'+str(NoFile)
 
-
+startInd=2000
 interval=1
+mappingInterval=50
 
 logodd_thre=500
 p11 = 0.65# P(occupied|measured occupied);
@@ -24,7 +27,7 @@ def SLAM(particles,range_raw, MAP,logodd,T_h_b, pose0,pose1, rpy_unbiased,i):
     p_best=np.array([particles['sx'][ind_bestparticles],particles['sy'][ind_bestparticles],particles['syaw'][ind_bestparticles]])
 
 
-    if np.mod(i,10)==0:
+    if np.mod(i,mappingInterval)==0:
 
         MAP,logodd=mapping(range_raw,p_best,T_h_b,MAP,logodd,rpy_unbiased)
 
@@ -33,6 +36,7 @@ def SLAM(particles,range_raw, MAP,logodd,T_h_b, pose0,pose1, rpy_unbiased,i):
 
 
     particles=localizationUpdate(particles,range_raw,MAP,T_h_b,rpy_unbiased)
+    # particles = localizationPrediction(particles, pose1.reshape(-1, 1), pose0.reshape(-1, 1))
 
 
     return particles, MAP,logodd,p_best
@@ -63,8 +67,8 @@ if __name__=='__main__':
     plt.ion()
     fig, ax = plt.subplots()
 
-    for i in range(0,n_lidar,interval):
-        print(i)
+    for i in range(startInd,n_lidar,interval):
+
 
         #target for this loop is 1
         lidar1 = lidarData[i]
@@ -86,22 +90,29 @@ if __name__=='__main__':
 
         #visualize
 
-        if np.mod(i,10)==0:
-            ax.imshow(MAP['map'])
-            # plt.imshow(MAP['map'])
+        if np.mod(i,mappingInterval)==0 or i>n_lidar-2:
+            print(i)
+            # ax.imshow(sigmoid(MAP['map'],1,0))
+            ax.imshow(MAP['binary'])
             x_map = np.ceil((p_best[0] - MAP['xmin']) / MAP['res']).astype(np.int16) - 1
             y_map = np.ceil((p_best[1] - MAP['ymin']) / MAP['res']).astype(np.int16) - 1
             ax.arrow(x=y_map,y=x_map,dx=100*np.sin(p_best[-1]),dy=100*np.cos(p_best[-1]),head_width=30, head_length=20,color='red')
             x_p=np.ceil((particles['sx'] - MAP['xmin']) / MAP['res']).astype(np.int16) - 1
             y_p=np.ceil((particles['sy'] - MAP['xmin']) / MAP['res']).astype(np.int16) - 1
             ax.scatter(y_p,x_p)
-            plt.title('%d'%(i))
+            plt.title('Dataset No. %d\n%d/%d'%(NoFile,i+1,n_lidar))
             # ax.annotate("", xy=(0.5, 0.5), xytext=(0, 0),rrowprops = dict(arrowstyle="->"))
 
             plt.pause(1)
             plt.draw()
+            if i>n_lidar-2:
+                plt.savefig(lidar_file + '.jpg')
             ax.cla()
-    plt.savefig('0.jpg')
+    with open(lidar_file+'MAP.pickle', 'wb') as handle:
+        pickle.dump(MAP, handle, protocol=pickle.HIGHEST_PROTOCOL)
+    with open(lidar_file+'logodd.pickle', 'wb') as handle:
+        pickle.dump(logodd, handle, protocol=pickle.HIGHEST_PROTOCOL)
+    # plt.savefig(lidar_file+'.jpg')
 
 
 

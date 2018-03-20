@@ -1,5 +1,5 @@
 import numpy as np
-from helper import smartMinus,smartPlus
+from helper import smartMinus,smartPlus,Rot
 from MapUtils.MapUtils import *
 from utils import cal_T_b_g,rangeRaw2rangeH,rangeH2rangeG
 from mapping import angles
@@ -35,12 +35,23 @@ def localizationPrediction(particles,pose_cur, pose_pre):
     ppose0[2] = particles['syaw']
     ppose1=np.zeros_like(ppose0)
     w_xy = np.random.multivariate_normal(mean=np.zeros(2), cov=W[:2,:2], size=n_sample)
+    # w_x=np.random.normal(0,W[0,0],(n_sample,1))
+    # w_y = np.random.normal(0, W[1, 1], (n_sample, 1))
     w_yaw=np.random.normal(0,W[-1,-1],(n_sample,1))
-    w=np.concatenate((w_xy,w_yaw),axis=1)
+    # w=np.concatenate((np.concatenate((w_x,w_y),axis=1),w_yaw),axis=1)
+    w = np.concatenate((w_xy, w_yaw), axis=1)
+
+    dxdy_gobal_raw = pose_cur[:2] - pose_pre[:2]
+    dxdy_local = Rot(pose_pre[-1,0]).T.dot(dxdy_gobal_raw)
+    dyaw = pose_cur[-1] - pose_pre[-1]
+    ppose1[-1] =ppose0[-1]+dyaw+w[:,-1]
+
     for i in range(n_sample):
 
-        ppose1[:,i] = smartPlus(smartPlus(ppose0[:,i].reshape(-1,1), smartMinus(pose_cur, pose_pre)),w[i].reshape(-1,1))[:,0]
-    
+        # ppose1[:,i] = smartPlus(smartPlus(ppose0[:,i].reshape(-1,1), smartMinus(pose_cur, pose_pre)),w[i].reshape(-1,1))[:,0]
+
+
+        ppose1[:2,i]=ppose0[:2,i]+Rot(ppose1[-1,i]).dot(dxdy_local)[:,0]+w[i,:2]
 
 
     particles['sx'] = ppose1[0]
@@ -69,8 +80,10 @@ def localizationUpdate(particles,range_raw,MAP,T_h_b,rpy):
         range_G = range_G[:,indValid]
 
         # convert phy corrds to map corr
-        xrange_map = np.ceil((range_G[:, 0] - MAP['xmin']) / MAP['res']).astype(np.int16) - 1
-        yrange_map = np.ceil((range_G[:, 1] - MAP['ymin']) / MAP['res']).astype(np.int16) - 1
+        # xrange_map = np.ceil((range_G[:, 0] - MAP['xmin']) / MAP['res']).astype(np.int16) - 1
+        # yrange_map = np.ceil((range_G[:, 1] - MAP['ymin']) / MAP['res']).astype(np.int16) - 1
+        xrange_map = np.arange(-0.2, 0.2 + MAP['res'], MAP['res'])
+        yrange_map = np.arange(-0.2, 0.2 + MAP['res'], MAP['res'])
         Y = np.concatenate([np.concatenate([range_G[0].reshape(1,-1), range_G[1].reshape(1,-1)], axis=0), np.zeros([1,len(range_G[0])])], axis=0)
         c=mapCorrelation(MAP['map'],MAP['xcell_phy'],MAP['ycell_phy'],Y[:3],xrange_map,yrange_map)
         cs[i]=np.linalg.norm(c)
@@ -87,6 +100,7 @@ def localizationUpdate(particles,range_raw,MAP,T_h_b,rpy):
     Neff=np.sum(particles['sweight'])/(particles['sweight'].dot(particles['sweight']))
 
     if Neff<0.7*n_sample:
+        print("rasampling")
         ind_resample=resample(particles['sweight'])
         particles['sx']=particles['sx'][ind_resample]
         particles['sy'] = particles['sy'][ind_resample]
@@ -102,14 +116,14 @@ def resample(weights):
     wsum=np.cumsum(weights)
     wsum/=wsum[-1]
 
-    r=np.random.rand(1,n_sample)
+    r=np.random.rand(n_sample)
     indsort=np.argsort(np.concatenate([wsum,r]))
 
     s=np.concatenate([np.ones(n_sample),np.zeros(n_sample)])
     s=s[indsort]
     ssum=np.cumsum(s)
-    index=ssum[s==0]+1
-    return index
+    index=ssum[s==0]
+    return index.astype(int)
 
 
 def chooseBestParticle(sweight):

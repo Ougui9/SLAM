@@ -39,6 +39,7 @@ def iniMap(res,xmin,xmax,ymin,ymax):
     MAP['sizey']  = int(np.ceil((MAP['ymax'] - MAP['ymin']) / MAP['res'] + 1))
 
     MAP['map'] = np.zeros((MAP['sizex'],MAP['sizey']),dtype=np.int8) #DATA TYPE: char or
+    MAP['binary']=np.zeros((MAP['sizex'],MAP['sizey']),dtype=np.int8)
     # MAP['binary']=MAP['odd'].copy()
     # MAP['occFactor']=1/9
     MAP['xcell_phy']= np.arange(MAP['xmin'], MAP['xmax'] + MAP['res'], MAP['res'])  # x-positions of each pixel of the map
@@ -54,8 +55,13 @@ def updateMAP_logodd(MAP,logodd,xcell_free,ycell_free,xcell_hit,ycell_hit):
 
     # MAP['map']=sigmoid(logodd['odd'],20,0)
     MAP['map'][logodd['odd']>0]=1#occ
-    MAP['map'][logodd['odd'] == 0]=0#unsure/free
-    MAP['map'][logodd['odd'] < 0]=-1#free
+    MAP['map'][logodd['odd'] <= 0]=0#unsure/free
+    # MAP['map'][logodd['odd'] < 0]=-1#free
+
+    MAP['binary'][logodd['odd'] > 0] = 1  # occ
+    MAP['binary'][logodd['odd'] <= 0] = 0  # unsure/free
+    MAP['binary'][logodd['odd'] < 0]=-1#free
+
     return MAP,logodd
 
 

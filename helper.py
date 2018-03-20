@@ -47,15 +47,15 @@ def rot2rpy(rot):
     rpy[0] = np.arctan2(rot[2, 1], rot[2, 2])
     return rpy
 
-def visualize2D(pose):
-    # ax=plt.figure(0)
-    # plt.hold(True)
-    plt.xticks(np.linspace(-0.1, 3, 100, endpoint=True))
-    plt.yticks(np.linspace(-0.1, 2, 100, endpoint=True))
-    for i in range(1000,len(pose)):
-        plt.scatter(pose[i,0],pose[i,1])
-        plt.draw()
-        plt.pause(0.001)
+# def visualize2D(pose):
+#     # ax=plt.figure(0)
+#     # plt.hold(True)
+#     plt.xticks(np.linspace(-0.1, 3, 100, endpoint=True))
+#     plt.yticks(np.linspace(-0.1, 2, 100, endpoint=True))
+#     for i in range(1000,len(pose)):
+#         plt.scatter(pose[i,0],pose[i,1])
+#         plt.draw()
+#         plt.pause(0.001)
 
 # def embedOdoNew(pose_new,lidarData):
 #     n_lidar = len(lidarData)
@@ -68,25 +68,14 @@ def getData(jointPath, lidarPath):
 
     #get joint data
     jointData = get_joint(jointPath)
-    # head_angles=jointData['head_angles']
-    # ts_joint=jointData['ts'].T
 
     #get lidar data
     lidarData=get_lidar(lidarPath)
-    # n_lidar=len(lidarData)
 
-    # ts_lidar=np.zeros([n_lidar,1])#(n,1)
-    # rpy=np.zeros([n_lidar,3])#(n,3)
-    # for i in range(n_lidar):
-    #     ts_lidar[i]=lidarData[i]['t'][0,0]
-    #     rpy[i]=lidarData[i]['rpy'][0,0]
-    # ind_joint_eff, ind_lidar_eff=findClosestTime(ts_joint,ts_lidar)
-
-    #extract info by useful timestamps
     return jointData,lidarData
 
-# def sigmoid(x,a,c):
-#   return 1 / (1 + np.exp(-a*(x-c)))
+def sigmoid(x,a,c):
+  return 1 / (1 + np.exp(-a*(x-c)))
 
 def smartPlus(x1,x0):
     '''
@@ -94,6 +83,7 @@ def smartPlus(x1,x0):
     :param x0: (3,1)
     :return: (3,1)
     '''
+
     res=np.zeros([3,1])
     R0=Rot(x0[-1,0])
     res[:2]=x0[:2]+R0.dot(x1[:2])
@@ -109,7 +99,7 @@ def smartMinus(x1,x0):
         '''
     res = np.zeros([3, 1])
     R0 = Rot(x0[-1,0])
-    res[:2] = R0.dot((x1[:2]-x0[:2]).reshape(-1,1))
+    res[:2] = R0.T.dot((x1[:2]-x0[:2]).reshape(-1,1))
     res[-1] = x1[-1] - x0[-1]
 
     return res
