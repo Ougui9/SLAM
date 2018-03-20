@@ -100,7 +100,7 @@ def mapping(range_raw,p_best,T_h_b,MAP,logodd,rpy_unbiased):#ranges:(n, 3)
 
 
     #get free cells corrds
-    xy_free=getMapCellsFromRay(xp_best_map,yp_best_map,xrange_map,yrange_map)
+    xy_free=getMapCellsFromRay(xp_best_map,yp_best_map,xrange_map,yrange_map)[:,-1]
     xmap_free = xy_free[0]
     ymap_free = xy_free[1]
 

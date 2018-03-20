@@ -42,20 +42,21 @@ def localizationPrediction(particles,pose_cur, pose_pre):
     w = np.concatenate((w_xy, w_yaw), axis=1)
 
     dxdy_gobal_raw = pose_cur[:2] - pose_pre[:2]
-    dxdy_local = Rot(pose_pre[-1,0]).T.dot(dxdy_gobal_raw)
-    dyaw = pose_cur[-1] - pose_pre[-1]
-    ppose1[-1] =ppose0[-1]+dyaw+w[:,-1]
+    # dxdy_local = Rot(pose_pre[-1,0]).T.dot(dxdy_gobal_raw)
+    # dyaw = pose_cur[-1] - pose_pre[-1]
+    # ppose1[-1] =ppose0[-1]+dyaw+w[:,-1]
 
     for i in range(n_sample):
 
-        # ppose1[:,i] = smartPlus(smartPlus(ppose0[:,i].reshape(-1,1), smartMinus(pose_cur, pose_pre)),w[i].reshape(-1,1))[:,0]
+        ppose1[:,i] = smartPlus(smartPlus(ppose0[:,i].reshape(-1,1), smartMinus(pose_cur, pose_pre)),w[i].reshape(-1,1))[:,0]
 
 
-        ppose1[:2,i]=ppose0[:2,i]+Rot(ppose1[-1,i]).dot(dxdy_local)[:,0]+w[i,:2]
-
+        # ppose1[:2,i]=ppose0[:2,i]+Rot(ppose1[-1,i]).dot(dxdy_local)[:,0]
 
     particles['sx'] = ppose1[0]
     particles['sy'] = ppose1[1]
+    # particles['sx'] = ppose1[0]+w[:,0]
+    # particles['sy'] = ppose1[1]+w[:,1]
     particles['syaw'] = ppose1[2]
     # print(1)
 
@@ -87,6 +88,7 @@ def localizationUpdate(particles,range_raw,MAP,T_h_b,rpy):
         Y = np.concatenate([np.concatenate([range_G[0].reshape(1,-1), range_G[1].reshape(1,-1)], axis=0), np.zeros([1,len(range_G[0])])], axis=0)
         c=mapCorrelation(MAP['map'],MAP['xcell_phy'],MAP['ycell_phy'],Y[:3],xrange_map,yrange_map)
         cs[i]=np.linalg.norm(c)
+        # cs[i] = np.max(c)
     particles['sweight']*=cs
     sum_sw=np.sum(particles['sweight'])
     if sum_sw==0:

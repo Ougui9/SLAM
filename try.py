@@ -6,12 +6,12 @@ import pickle
 # from MapUtils.MapUtils import *
 
 folder='./data/'
-NoFile=2
+NoFile=0
 lidar_file='train_lidar'+str(NoFile)
 joint_file='train_joint'+str(NoFile)
 
-startInd=2000
-interval=1
+startInd=6000
+interval=50
 mappingInterval=50
 
 logodd_thre=500
@@ -68,7 +68,7 @@ if __name__=='__main__':
     fig, ax = plt.subplots()
 
     for i in range(startInd,n_lidar,interval):
-
+        print(i)
 
         #target for this loop is 1
         lidar1 = lidarData[i]
@@ -77,7 +77,7 @@ if __name__=='__main__':
         pose0=lidar0['pose'][0] #if i>0 else lidarData[i]['pose'][0]
         pose1 = lidar1['pose'][0]
         rpy_unbiased=lidarData[i]['rpy'][0]-lidarData_0['rpy'][0]
-
+        # rpy_unbiased = lidarData[i]['rpy'][0]
 
         #cal T_h_b
         T_h_b=calT_h_b(lidar1['t'][0,0],jointData)
@@ -91,7 +91,7 @@ if __name__=='__main__':
         #visualize
 
         if np.mod(i,mappingInterval)==0 or i>n_lidar-2:
-            print(i)
+            # print(i)
             # ax.imshow(sigmoid(MAP['map'],1,0))
             ax.imshow(MAP['binary'])
             x_map = np.ceil((p_best[0] - MAP['xmin']) / MAP['res']).astype(np.int16) - 1

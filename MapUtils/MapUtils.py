@@ -1,5 +1,6 @@
 #Daniel D. Lee, Alex Kushleyev, Kelsey Saulnier, Nikolay Atanasov
 import numpy as np
+import MapUtils.bresenham2D as bresenham2D
 
 # INPUT 
 # im              the map 
@@ -36,47 +37,9 @@ def mapCorrelation(im, x_im, y_im, vp, xs, ys):
 def getMapCellsFromRay(x0t,y0t,xis,yis):
 	nPoints = np.size(xis)
 	xyio = np.array([[],[]])
-	for x1,y1  in zip(xis,yis):
-		x0 = x0t
-		y0 = y0t
-		steep = (np.abs(y1-y0) > np.abs(x1-x0))
-		if steep:
-			temp = x0
-			x0 = y0
-			y0 = temp
-			temp = x1
-			x1 = y1
-			y1 = temp
-		if x0 > x1:
-			temp = x0
-			x0 = x1
-			x1 = temp
-			temp = y0
-			y0 = y1
-			y1 = temp
-		deltax = x1 - x0
-		deltay = np.abs(y1 - y0)
-		error = deltax / 2.
-		y = y0
-		ystep = 0
-		if y0 < y1:
-			ystep = 1
-		else:
-			ystep = -1
-		if steep:
-			for x in np.arange(x0,x1):
-				xyio = np.concatenate((xyio,np.array([[y],[x]])),axis=1)
-				error = error - deltay
-				if error < 0:
-					y += ystep
-					error += deltax
-		else:
-			for x in np.arange(x0,x1):
-				xyio = np.concatenate((xyio,np.array([[x],[y]])),axis=1)
-				error = error - deltay
-				if error < 0:
-					y += ystep
-					error += deltax
+	for x1, y1 in zip(xis,yis):
+		ox,oy = bresenham2D.bresenham2D(x0t,y0t,x1,y1)
+		xyio = np.concatenate((xyio,np.array([ox,oy])),axis=1)
 	return xyio.astype(int)
 
 
