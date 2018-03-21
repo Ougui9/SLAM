@@ -14,15 +14,15 @@ ymax=20
 occFactor=1/9
 angles = np.arange(-135, 135.25, 0.25) * np.pi / 180.
 
-def iniLogOdd(sizex,sizey,thres,p11,p00):
+def iniLogOdd(sizex,sizey,thres,p11):
     logodd={}
     logodd['odd']=np.zeros([sizex, sizey])
-    logodd['p11'] =p11# P(occupied|measured occupied);(z=1,m=1)
-    logodd['p01'] = 1-p11   # P(free|measured occupied)
-    logodd['p00']= p00 # P(free | measured free);
-    logodd['p10'] = 1 - p00 # P(occupied | measured free);
-    logodd['logodd_occ'] = np.log(logodd['p11'] / logodd['p10']) # > 0
-    logodd['logodd_free'] = np.log(logodd['p01'] / logodd['p00']) # < 0
+    # logodd['p11'] =p11# P(occupied|measured occupied);(z=1,m=1)
+    # logodd['p01'] = 1-p11   # P(free|measured occupied)
+    # logodd['p00']= p00 # P(free | measured free);
+    # logodd['p10'] = 1 - p00 # P(occupied | measured free);
+    logodd['logodd_occ'] = np.log(p11 / (1 - p11)) # > 0
+    logodd['logodd_free'] = np.log((1 - p11) / p11) * 0.5 # < 0
     logodd['logodd_max'] = np.log(thres)
     logodd['logodd_min'] = -np.log(thres)
     logodd[thres] = thres
@@ -48,10 +48,10 @@ def iniMap(res,xmin,xmax,ymin,ymax):
 
 
 def updateMAP_logodd(MAP,logodd,xcell_free,ycell_free,xcell_hit,ycell_hit):
-    logodd['odd'][xcell_free, ycell_free] += logodd['logodd_free']
-    logodd['odd'][xcell_free, ycell_free] = np.maximum(logodd['odd'][xcell_free, ycell_free], logodd['logodd_min'])
-    logodd['odd'][xcell_hit, ycell_hit] += logodd['logodd_occ']
-    logodd['odd'][xcell_hit, ycell_hit] = np.minimum(logodd['odd'][xcell_hit, ycell_hit], logodd['logodd_max'])
+    logodd['odd'][ycell_free, xcell_free] += logodd['logodd_free']
+    logodd['odd'][ycell_free, xcell_free] = np.maximum(logodd['odd'][ycell_free, xcell_free], logodd['logodd_min'])
+    logodd['odd'][ycell_hit, xcell_hit] += logodd['logodd_occ']
+    logodd['odd'][ycell_hit, xcell_hit] = np.minimum(logodd['odd'][ycell_hit, xcell_hit], logodd['logodd_max'])
 
     # MAP['map']=sigmoid(logodd['odd'],20,0)
     MAP['map'][logodd['odd']>0]=1#occ
@@ -72,7 +72,7 @@ def updateMAP_logodd(MAP,logodd,xcell_free,ycell_free,xcell_hit,ycell_hit):
 
 
 
-def mapping(range_raw,head_angles,p_best,MAP,logodd,rpy_unbiased):#ranges:(n, 3)
+def mapping(range_raw,head_angles,p_best,MAP,logodd):#ranges:(n, 3)
 
 
     #Transform ranges form H frame to G frame
@@ -96,7 +96,7 @@ def mapping(range_raw,head_angles,p_best,MAP,logodd,rpy_unbiased):#ranges:(n, 3)
     yrange_map = np.ceil((range_xyz_world[:,1] - MAP['ymin']) / MAP['res']).astype(np.int16) - 1
 
     xp_best_map=np.ceil((p_best[0] - MAP['xmin']) / MAP['res']).astype(np.int16) - 1
-    yp_best_map=np.ceil((p_best[1] - MAP['xmin']) / MAP['res']).astype(np.int16) - 1
+    yp_best_map=np.ceil((p_best[1] - MAP['ymin']) / MAP['res']).astype(np.int16) - 1
 
 
 

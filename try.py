@@ -6,7 +6,7 @@ import pickle
 # from MapUtils.MapUtils import *
 
 folder='./data/'
-NoFile=1
+NoFile=0
 lidar_file='train_lidar'+str(NoFile)
 joint_file='train_joint'+str(NoFile)
 
@@ -15,13 +15,13 @@ interval=1
 mappingInterval=500
 
 logodd_thre=500
-p11 = 0.65# P(occupied|measured occupied);
-p00 = 0.7# P(free|measured free);
+p11 = 0.9# P(occupied|measured occupied);
+# p00 = 0.7# P(free|measured free);
 
 # define noise covariance
 
 
-def SLAM(particles,range_raw,head_angles, MAP,logodd, pose0,pose1, rpy_unbiased,i):
+def SLAM(particles,range_raw,head_angles, MAP,logodd, pose0,pose1, rpy_cur,rpy_pre,i):
     ind_bestparticles=chooseBestParticle(particles['sweight'])
 
     p_best=np.array([particles['sx'][ind_bestparticles],particles['sy'][ind_bestparticles],particles['syaw'][ind_bestparticles]])
@@ -29,13 +29,13 @@ def SLAM(particles,range_raw,head_angles, MAP,logodd, pose0,pose1, rpy_unbiased,
 
     # if np.mod(i,mappingInterval)==0:
 
-    MAP,logodd,range_xyz_lidar,inValid_c=mapping(range_raw,head_angles,p_best,MAP,logodd,rpy_unbiased)
+    MAP,logodd,range_xyz_lidar,inValid_c=mapping(range_raw,head_angles,p_best,MAP,logodd)
+
+    noise = np.random.multivariate_normal(mean=np.zeros(3), cov=W, size=n_sample)
+    particles=localizationPrediction(particles,pose1.reshape(-1,1),pose0.reshape(-1,1),rpy_cur[-1],rpy_pre[-1],noise)
 
 
-    particles=localizationPrediction(particles,pose1.reshape(-1,1),pose0.reshape(-1,1))
-
-
-    particles=localizationUpdate(particles, MAP,rpy_unbiased,range_xyz_lidar,head_angles,inValid_c)
+    particles=localizationUpdate(particles, MAP,rpy_cur[-1],range_xyz_lidar,head_angles,inValid_c)
     # particles = localizationPrediction(particles, pose1.reshape(-1, 1), pose0.reshape(-1, 1))
 
 
@@ -61,7 +61,7 @@ if __name__=='__main__':
 
     particles=ini_particles(x0,y0,yaw0,n_sample)
     MAP = iniMap(res, xmin, xmax, ymin, ymax)
-    logodd=iniLogOdd(MAP['sizex'],MAP['sizey'],logodd_thre,p11,p00)
+    logodd=iniLogOdd(MAP['sizex'],MAP['sizey'],logodd_thre,p11)
 
     # plt.figure()
     plt.ion()
@@ -76,7 +76,8 @@ if __name__=='__main__':
         #define pose0 pose1
         pose0=lidar0['pose'][0] #if i>0 else lidarData[i]['pose'][0]
         pose1 = lidar1['pose'][0]
-        rpy_unbiased=lidarData[i]['rpy'][0]-lidarData_0['rpy'][0]
+        rpy_cur = lidar1['rpy'][0] - lidarData_0['rpy'][0]
+        rpy_pre = lidar0['rpy'][0] - lidarData_0['rpy'][0]
         # rpy_unbiased = lidarData[i]['rpy'][0]
 
         #cal T_h_b
@@ -84,7 +85,7 @@ if __name__=='__main__':
         ind_joint, head_angles=extractHead(lidar1['t'][0,0], jointData)
 
 
-        particles, MAP, logodd,p_best=SLAM(particles,lidarData[i]['scan'][0], head_angles,MAP, logodd, pose0,pose1,rpy_unbiased,i)
+        particles, MAP, logodd,p_best=SLAM(particles,lidarData[i]['scan'][0], head_angles,MAP, logodd, pose0,pose1,rpy_cur,rpy_pre,i)
 
 
 
@@ -94,13 +95,13 @@ if __name__=='__main__':
         if np.mod(i,mappingInterval)==0 or i>n_lidar-2:
             # print(i)
             # ax.imshow(sigmoid(MAP['map'],1,0))
-            ax.imshow(MAP['binary'])
+            ax.imshow(logodd['odd'],cmap='hot')
             x_map = np.ceil((p_best[0] - MAP['xmin']) / MAP['res']).astype(np.int16) - 1
             y_map = np.ceil((p_best[1] - MAP['ymin']) / MAP['res']).astype(np.int16) - 1
-            ax.arrow(x=y_map,y=x_map,dx=100*np.sin(p_best[-1]),dy=100*np.cos(p_best[-1]),head_width=30, head_length=20,color='red')
+            ax.arrow(x=x_map,y=y_map,dx=100*np.cos(p_best[-1]),dy=100*np.sin(p_best[-1]),head_width=30, head_length=20,color='red')
             x_p=np.ceil((particles['sx'] - MAP['xmin']) / MAP['res']).astype(np.int16) - 1
             y_p=np.ceil((particles['sy'] - MAP['xmin']) / MAP['res']).astype(np.int16) - 1
-            ax.scatter(y_p,x_p)
+            ax.scatter(x_p,y_p)
             plt.title('Dataset No. %d\n%d/%d'%(NoFile,i+1,n_lidar))
             # ax.annotate("", xy=(0.5, 0.5), xytext=(0, 0),rrowprops = dict(arrowstyle="->"))
 

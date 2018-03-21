@@ -4,17 +4,17 @@ from MapUtils.MapUtils import *
 from utils import cal_T_b_g,rangeH2rangeG
 from mapping import angles
 
-n_sample=150
+n_sample=200
 # process_var = np.array([1,1,5])*1e-5
 
 # w=np
-W = np.array([[1E-5, 0, 0],
-              [0, 1E-5, 0],
-              [0, 0, 5E-5]])
+# W = np.array([[1E-5, 0, 0],
+#               [0, 1E-5, 0],
+#               [0, 0, 5E-5]])
 
-# W = np.array([[4E-4, 0, 0],
-#               [0, 4E-4, 0],
-#               [0, 0, 6E-2]])
+W = np.array([[4E-4, 0, 0],
+              [0, 4E-4, 0],
+              [0, 0, 6E-2]])
 
 
 
@@ -26,42 +26,66 @@ def ini_particles(x0,y0,yaw0,n_sample):
     particles['syaw'] = sxyyaw[:, 2]
     particles['sweight'] = np.ones([n_sample]) / n_sample
     return particles
-def localizationPrediction(particles,pose_cur, pose_pre):
+def localizationPrediction(particles,pose_cur, pose_pre,yaw_cur,yaw_pre,noise):
     '''
     :param particles:{}: sx(n,), sy(n,), syaw(n,), sweight(n,1)
     :param pose_cur:(3,1)
     :param pose_pre:(3,1)
     :return:
     '''
-    ppose0=np.zeros([3,n_sample])
-    ppose0[0]=particles['sx']
-    ppose0[1] = particles['sy']
-    ppose0[2] = particles['syaw']
-    ppose1=np.zeros_like(ppose0)
-    w_xy = np.random.multivariate_normal(mean=np.zeros(2), cov=W[:2,:2], size=n_sample)
-    # w_x=np.random.normal(0,W[0,0],(n_sample,1))
-    # w_y = np.random.normal(0, W[1, 1], (n_sample, 1))
-    w_yaw=np.random.normal(0,W[-1,-1],(n_sample,1))
-    # w=np.concatenate((np.concatenate((w_x,w_y),axis=1),w_yaw),axis=1)
-    w = np.concatenate((w_xy, w_yaw), axis=1)
+    # ppose0=np.zeros([3,n_sample])
+    # ppose0[0]=particles['sx']
+    # ppose0[1] = particles['sy']
+    # ppose0[2] = particles['syaw']
+    # ppose1=np.zeros_like(ppose0)
+    # w_xy = np.random.multivariate_normal(mean=np.zeros(2), cov=W[:2,:2], size=n_sample)
+    # # w_x=np.random.normal(0,W[0,0],(n_sample,1))
+    # # w_y = np.random.normal(0, W[1, 1], (n_sample, 1))
+    # w_yaw=np.random.normal(0,W[-1,-1],(n_sample,1))
+    # # w=np.concatenate((np.concatenate((w_x,w_y),axis=1),w_yaw),axis=1)
+    # w = np.concatenate((w_xy, w_yaw), axis=1)
+    #
+    # dxdy_gobal_raw = pose_cur[:2] - pose_pre[:2]
+    # # dxdy_local = Rot(pose_pre[-1,0]).T.dot(dxdy_gobal_raw)
+    # # dyaw = pose_cur[-1] - pose_pre[-1]
+    # # ppose1[-1] =ppose0[-1]+dyaw+w[:,-1]
+    #
+    # for i in range(n_sample):
+    #
+    #     ppose1[:,i] = smartPlus(smartPlus(ppose0[:,i].reshape(-1,1), smartMinus(pose_cur, pose_pre)),w[i].reshape(-1,1))[:,0]
+    #
+    #
+    #     # ppose1[:2,i]=ppose0[:2,i]+Rot(ppose1[-1,i]).dot(dxdy_local)[:,0]
 
-    dxdy_gobal_raw = pose_cur[:2] - pose_pre[:2]
-    # dxdy_local = Rot(pose_pre[-1,0]).T.dot(dxdy_gobal_raw)
-    # dyaw = pose_cur[-1] - pose_pre[-1]
-    # ppose1[-1] =ppose0[-1]+dyaw+w[:,-1]
+    # n= particles['sx'].shape
 
-    for i in range(n_sample):
+    # compute global odometry
+    dxdy_global = (pose_cur[:2] - pose_pre[:2])
+    dtheta_global = yaw_cur - yaw_pre
 
-        ppose1[:,i] = smartPlus(smartPlus(ppose0[:,i].reshape(-1,1), smartMinus(pose_cur, pose_pre)),w[i].reshape(-1,1))[:,0]
+    # convert to local frame
+    local_yaw = yaw_pre
+    R_local = np.array([[np.cos(local_yaw), -np.sin(local_yaw)],
+                        [np.sin(local_yaw), np.cos(local_yaw)]])
+    dxdy_local = np.dot(R_local.T, dxdy_global)
+
+    # apply global motion update for each particle
+    yaw_est = particles['syaw']
+    R_est = np.array([[np.cos(yaw_est), -np.sin(yaw_est)],
+                      [np.sin(yaw_est), np.cos(yaw_est)]])
+    dxdy_est = np.einsum('ijk,jl->ilk', R_est, dxdy_local).transpose([2, 0, 1]).squeeze(axis=2)
+
+    # add noise to odometry measurements
+    dxdy_est += noise[:, :2]
+
+    dtheta_est = dtheta_global + noise[:, 2]
 
 
-        # ppose1[:2,i]=ppose0[:2,i]+Rot(ppose1[-1,i]).dot(dxdy_local)[:,0]
-
-    particles['sx'] = ppose1[0]
-    particles['sy'] = ppose1[1]
+    particles['sx'] += dxdy_est[:, 0]
+    particles['sy'] += dxdy_est[:, 1]
     # particles['sx'] = ppose1[0]+w[:,0]
     # particles['sy'] = ppose1[1]+w[:,1]
-    particles['syaw'] = ppose1[2]
+    particles['syaw'] += dtheta_global
     # print(1)
 
     return particles
@@ -110,10 +134,12 @@ def localizationUpdate(particles,MAP,rpy,range_xyz_lidar,head_angles,inValid_c):
 
 
     #check Neff
-    Neff=np.sum(particles['sweight'])/(particles['sweight'].dot(particles['sweight']))
+    # Neff=np.sum(particles['sweight'])/(particles['sweight'].dot(particles['sweight']))
 
-    if Neff<0.7*n_sample:
-        print("rasampling")
+    Neff=1. / np.sum(particles['sweight'] ** 2)
+    # if Neff < 0.7 * n_sample:
+    if Neff < 10:
+        print("resampling")
         ind_resample=resample(particles['sweight'])
         particles['sx']=particles['sx'][ind_resample]
         particles['sy'] = particles['sy'][ind_resample]
