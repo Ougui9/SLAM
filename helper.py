@@ -219,7 +219,7 @@ def mapCorrelation2(range_xyz_G, Map):
     # ji[ji >= ((Map['xmax']-Map['xmin']) * Map['res'])] = ((Map['xmax']-Map['xmin']) * Map['res']) - 1
 
     # compute particle correlations
-    c = np.sum(Map['map'][ji[1], ji[0]], axis=0)
+    c = np.sum(Map['map'][ji[0], ji[1]], axis=0)
     return c
 #
 # def xy2map(xy, Map):

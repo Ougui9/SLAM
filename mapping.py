@@ -86,17 +86,17 @@ def mapping(range_raw,head_angles,p_best,MAP,logodd):#ranges:(n, 3)
     #remove invalid ranges
     indValid_cf = np.logical_and((range_raw < 30), (range_raw > 0.1))
     indValid_c = np.logical_and((range_raw < 10), (range_raw > 0.1))
-    indValid_ground=range_xyz_world[:,-1]>0.1
+    indValid_ground=range_xyz_world[:,-1]>0.01
     indValid=np.logical_and(indValid_cf,indValid_ground)
     range_xyz_world=range_xyz_world[indValid]
     # angles=angles[indValid]
 
     #convert phy corrds to map corr
-    xrange_map = np.ceil((range_xyz_world[:,0] - MAP['xmin']) / MAP['res']).astype(np.int16) - 1
+    xrange_map = np.ceil((range_xyz_world[:,0] - MAP['ymin']) / MAP['res']).astype(np.int16) - 1
     yrange_map = np.ceil((range_xyz_world[:,1] - MAP['ymin']) / MAP['res']).astype(np.int16) - 1
 
-    xp_best_map=np.ceil((p_best[0] - MAP['xmin']) / MAP['res']).astype(np.int16) - 1
-    yp_best_map=np.ceil((p_best[1] - MAP['ymin']) / MAP['res']).astype(np.int16) - 1
+    xp_best_map=np.ceil((p_best[0] - MAP['ymin']) / MAP['res']).astype(np.int16) - 1
+    yp_best_map=np.ceil((p_best[1] - MAP['xmin']) / MAP['res']).astype(np.int16) - 1
 
 
 

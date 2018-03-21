@@ -10,7 +10,7 @@ NoFile=0
 lidar_file='train_lidar'+str(NoFile)
 joint_file='train_joint'+str(NoFile)
 
-startInd=2000
+startInd=0
 interval=1
 mappingInterval=500
 
