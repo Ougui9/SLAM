@@ -1,5 +1,6 @@
 #Daniel D. Lee, Alex Kushleyev, Kelsey Saulnier, Nikolay Atanasov
 import numpy as np
+import cv2 as cv
 import MapUtils.bresenham2D as bresenham2D
 
 # INPUT 
@@ -34,12 +35,22 @@ def mapCorrelation(im, x_im, y_im, vp, xs, ys):
 
 
 #Bresenham's line algorithm
-def getMapCellsFromRay(x0t,y0t,xis,yis):
-	nPoints = np.size(xis)
-	xyio = np.array([[],[]])
-	for x1, y1 in zip(xis,yis):
-		ox,oy = bresenham2D.bresenham2D(x0t,y0t,x1,y1)
-		xyio = np.concatenate((xyio,np.array([ox,oy])),axis=1)
-	return xyio.astype(int)
+# def getMapCellsFromRay(x0t,y0t,xis,yis):
+# 	nPoints = np.size(xis)
+# 	xyio = np.array([[],[]])
+# 	for x1, y1 in zip(xis,yis):
+# 		ox,oy = bresenham2D.bresenham2D(x0t,y0t,x1,y1)
+# 		xyio = np.concatenate((xyio,np.array([ox,oy])),axis=1)
+# 	return xyio.astype(int)
 
+
+def getMapCellsFromRay(map,x0t,y0t,xis,yis):
+	img = np.zeros_like(map, dtype='uint8')
+	xys=np.array([[x0t,y0t]],dtype=np.int32)
+	xye=np.concatenate((xis.reshape(-1,1),yis.reshape(-1,1)),axis=1)
+	xy=np.concatenate((xys,xye),axis=0)
+	# lines=cv.polylines(img,[xy],1,(1))
+
+	frees=cv.fillPoly(img,[xy],(1))
+	return np.where(frees==1)
 

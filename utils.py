@@ -1,6 +1,6 @@
 import numpy as np
 
-from helper import *
+from helper import findClosestJointTime,rpy2rot
 import matplotlib.pyplot as plt
 
 
@@ -13,19 +13,19 @@ dis_mass_G=0.93
 
 ground_thre=0.1
 
-def getRelOdometry(lidarData_cur,lidarData_pre,T_H_B, T_B_G): #head_angles_B: (n_joint,2)
-    lidarPose_lidar_G_cur, lidarPose_lidar_G_pre = lidarData_cur['pose'][0], lidarData_pre['pose'][0]
-    # dlidarPose_lidar_G_cur=lidarPose_lidar_G_cur- lidarPose_lidar_G_pre
-
-    rot_H_B=T_H_B[:3,:3]
-    rot_B_G=T_B_G[:3,:3]
-
-    rot_H_G=rot_B_G.dot(rot_H_B)
-
-    yaw=rot2rpy(rot_H_G)[-1]
-    lidarPose_lidar_G_cur[-1]=yaw
-
-    return lidarPose_lidar_G_cur #(3,)
+# def getRelOdometry(lidarData_cur,lidarData_pre,T_H_B, T_B_G): #head_angles_B: (n_joint,2)
+#     lidarPose_lidar_G_cur, lidarPose_lidar_G_pre = lidarData_cur['pose'][0], lidarData_pre['pose'][0]
+#     # dlidarPose_lidar_G_cur=lidarPose_lidar_G_cur- lidarPose_lidar_G_pre
+#
+#     rot_H_B=T_H_B[:3,:3]
+#     rot_B_G=T_B_G[:3,:3]
+#
+#     rot_H_G=rot_B_G.dot(rot_H_B)
+#
+#     yaw=rot2rpy(rot_H_G)[-1]
+#     lidarPose_lidar_G_cur[-1]=yaw
+#
+#     return lidarPose_lidar_G_cur #(3,)
 
 # def calT(jointData,lidarData_cur,lidarData_pre,lidarData_0):
 #     # n_lidar = len(lidarData_cur)
@@ -128,10 +128,18 @@ def rangeH2rangeG(range_H,T_H_G):
 
     return range_G
 
-def rangeRaw2rangeH(range_raw,angles):
+def rangeRaw2range_xyz_Lidar(range_raw,angles):
     n_range = len(range_raw)
-    range_H = np.zeros([n_range, 3])
-    range_lidar = range_raw.reshape(-1, 1) * np.array([np.cos(angles), np.sin(angles)]).T
-    range_H[:, :2] = range_lidar
-    range_H[-1] = dis_lidar_H
-    return range_H
+    range_lidar = np.zeros([n_range, 3])
+    range_lidar[:, :2] = range_raw.reshape(-1, 1) * np.array([np.cos(angles), np.sin(angles)]).T
+    # range_lidar[:, :2] = range_lidar
+    # range_H[-1] = dis_lidar_H
+    return range_lidar
+
+
+def extractHead(ts_lidar,joint):
+    ts_joint_raw = joint['ts'].T
+    # ts_lidar0 = lidar1['t'][0, 0]
+    ind_joint = findClosestJointTime(ts_joint_raw, ts_lidar)
+    head_angles = joint['head_angles'].T[ind_joint]
+    return ind_joint,head_angles

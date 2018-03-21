@@ -6,13 +6,13 @@ import pickle
 # from MapUtils.MapUtils import *
 
 folder='./data/'
-NoFile=0
+NoFile=1
 lidar_file='train_lidar'+str(NoFile)
 joint_file='train_joint'+str(NoFile)
 
-startInd=6000
-interval=50
-mappingInterval=50
+startInd=2000
+interval=1
+mappingInterval=500
 
 logodd_thre=500
 p11 = 0.65# P(occupied|measured occupied);
@@ -21,21 +21,21 @@ p00 = 0.7# P(free|measured free);
 # define noise covariance
 
 
-def SLAM(particles,range_raw, MAP,logodd,T_h_b, pose0,pose1, rpy_unbiased,i):
+def SLAM(particles,range_raw,head_angles, MAP,logodd, pose0,pose1, rpy_unbiased,i):
     ind_bestparticles=chooseBestParticle(particles['sweight'])
 
     p_best=np.array([particles['sx'][ind_bestparticles],particles['sy'][ind_bestparticles],particles['syaw'][ind_bestparticles]])
 
 
-    if np.mod(i,mappingInterval)==0:
+    # if np.mod(i,mappingInterval)==0:
 
-        MAP,logodd=mapping(range_raw,p_best,T_h_b,MAP,logodd,rpy_unbiased)
+    MAP,logodd,range_xyz_lidar,inValid_c=mapping(range_raw,head_angles,p_best,MAP,logodd,rpy_unbiased)
 
 
     particles=localizationPrediction(particles,pose1.reshape(-1,1),pose0.reshape(-1,1))
 
 
-    particles=localizationUpdate(particles,range_raw,MAP,T_h_b,rpy_unbiased)
+    particles=localizationUpdate(particles, MAP,rpy_unbiased,range_xyz_lidar,head_angles,inValid_c)
     # particles = localizationPrediction(particles, pose1.reshape(-1, 1), pose0.reshape(-1, 1))
 
 
@@ -80,10 +80,11 @@ if __name__=='__main__':
         # rpy_unbiased = lidarData[i]['rpy'][0]
 
         #cal T_h_b
-        T_h_b=calT_h_b(lidar1['t'][0,0],jointData)
+        # T_h_b=calT_h_b(lidar1['t'][0,0],jointData)
+        ind_joint, head_angles=extractHead(lidar1['t'][0,0], jointData)
 
 
-        particles, MAP, logodd,p_best=SLAM(particles,lidarData[i]['scan'][0], MAP, logodd,T_h_b, pose0,pose1,rpy_unbiased,i)
+        particles, MAP, logodd,p_best=SLAM(particles,lidarData[i]['scan'][0], head_angles,MAP, logodd, pose0,pose1,rpy_unbiased,i)
 
 
 
