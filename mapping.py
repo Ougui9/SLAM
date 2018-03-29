@@ -14,19 +14,20 @@ ymax=20
 occFactor=1/9
 angles = np.arange(-135, 135.25, 0.25) * np.pi / 180.
 
-def iniLogOdd(sizex,sizey,thres,p11):
+def iniLogOdd(sizex,sizey,thres,p11,p00):
     logodd={}
     logodd['odd']=np.zeros([sizex, sizey])
-    # logodd['p11'] =p11# P(occupied|measured occupied);(z=1,m=1)
-    # logodd['p01'] = 1-p11   # P(free|measured occupied)
-    # logodd['p00']= p00 # P(free | measured free);
-    # logodd['p10'] = 1 - p00 # P(occupied | measured free);
-    logodd['logodd_occ'] = np.log(p11 / (1 - p11)) # > 0
-    logodd['logodd_free'] = np.log((1 - p11) / p11) * 0.5 # < 0
+    logodd['p11'] =p11# P(occupied|measured occupied);(z=1,m=1)
+    logodd['p01'] = 1-p11   # P(free|measured occupied)
+    logodd['p00']= p00 # P(free | measured free);
+    logodd['p10'] = 1 - p00 # P(occupied | measured free);
+    logodd['logodd_occ'] = np.log(logodd['p11'] / logodd['p10']); # > 0
+    logodd['logodd_free'] = np.log(logodd['p01'] / logodd['p00']); # < 0
     logodd['logodd_max'] = np.log(thres)
     logodd['logodd_min'] = -np.log(thres)
     logodd[thres] = thres
     return logodd
+# class logodd
 
 def iniMap(res,xmin,xmax,ymin,ymax):
     MAP = {}
@@ -39,7 +40,7 @@ def iniMap(res,xmin,xmax,ymin,ymax):
     MAP['sizey']  = int(np.ceil((MAP['ymax'] - MAP['ymin']) / MAP['res'] + 1))
 
     MAP['map'] = np.zeros((MAP['sizex'],MAP['sizey']),dtype=np.int8) #DATA TYPE: char or
-    MAP['binary']=np.zeros((MAP['sizex'],MAP['sizey']),dtype=np.int8)
+    MAP['binary']=np.zeros((MAP['sizex'],MAP['sizey']),dtype=np.uint8)
     # MAP['binary']=MAP['odd'].copy()
     # MAP['occFactor']=1/9
     MAP['xcell_phy']= np.arange(MAP['xmin'], MAP['xmax'] + MAP['res'], MAP['res'])  # x-positions of each pixel of the map
@@ -95,6 +96,10 @@ def mapping(range_raw,head_angles,p_best,MAP,logodd):#ranges:(n, 3)
     xrange_map = np.ceil((range_xyz_world[:,0] - MAP['ymin']) / MAP['res']).astype(np.int16) - 1
     yrange_map = np.ceil((range_xyz_world[:,1] - MAP['ymin']) / MAP['res']).astype(np.int16) - 1
 
+
+
+
+
     xp_best_map=np.ceil((p_best[0] - MAP['ymin']) / MAP['res']).astype(np.int16) - 1
     yp_best_map=np.ceil((p_best[1] - MAP['xmin']) / MAP['res']).astype(np.int16) - 1
 
@@ -103,8 +108,26 @@ def mapping(range_raw,head_angles,p_best,MAP,logodd):#ranges:(n, 3)
 
     #get free cells corrds
     xy_free=getMapCellsFromRay(MAP['map'],xp_best_map,yp_best_map,xrange_map,yrange_map)
+
     xmap_free = xy_free[1]
+    inva_x=np.logical_and(0<xmap_free,xmap_free<(MAP['xmax']-MAP['xmin'])/ MAP['res'])
     ymap_free = xy_free[0]
+
+    inva_y=np.logical_and(0<ymap_free,ymap_free<(MAP['ymax']-MAP['ymin'])/ MAP['res'])
+
+    inv=np.logical_and(inva_x,inva_y)
+    xmap_free=xmap_free[inv]
+    ymap_free = ymap_free[inv]
+
+    inva_x = np.logical_and(0 < xrange_map, xrange_map < (MAP['xmax'] - MAP['xmin']) / MAP['res'])
+    # xrange_map=xrange_map[inva_x]
+
+    inva_y = np.logical_and(0 < yrange_map, yrange_map < (MAP['ymax'] - MAP['ymin']) / MAP['res'])
+    inv = np.logical_and(inva_x, inva_y)
+    xrange_map = xrange_map[inv]
+    yrange_map=yrange_map[inv]
+
+
 
     #update map&logodd
     MAP, logodd=updateMAP_logodd(MAP,logodd,xmap_free,ymap_free,xrange_map,yrange_map)

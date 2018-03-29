@@ -6,17 +6,17 @@ import pickle
 # from MapUtils.MapUtils import *
 
 folder='./data/'
-NoFile=0
+NoFile=1
 lidar_file='train_lidar'+str(NoFile)
 joint_file='train_joint'+str(NoFile)
 
 startInd=0
 interval=1
-mappingInterval=500
+mappingInterval=1
 
 logodd_thre=500
-p11 = 0.9# P(occupied|measured occupied);
-# p00 = 0.7# P(free|measured free);
+p11 = 0.65# P(occupied|measured occupied);
+p00 = 0.7# P(free|measured free);
 
 # define noise covariance
 
@@ -47,6 +47,12 @@ def SLAM(particles,range_raw,head_angles, MAP,logodd, pose0,pose1, rpy_cur,rpy_p
 
 
 if __name__=='__main__':
+    #data for ground detection
+
+
+
+
+
     jointData, lidarData = getData(jointPath=folder + joint_file, lidarPath=folder + lidar_file)
     n_lidar=len(lidarData)
 
@@ -61,7 +67,7 @@ if __name__=='__main__':
 
     particles=ini_particles(x0,y0,yaw0,n_sample)
     MAP = iniMap(res, xmin, xmax, ymin, ymax)
-    logodd=iniLogOdd(MAP['sizex'],MAP['sizey'],logodd_thre,p11)
+    logodd=iniLogOdd(MAP['sizex'],MAP['sizey'],logodd_thre,p11,p00)
 
     # plt.figure()
     plt.ion()
@@ -95,10 +101,10 @@ if __name__=='__main__':
         if np.mod(i,mappingInterval)==0 or i>n_lidar-2:
             # print(i)
             # ax.imshow(sigmoid(MAP['map'],1,0))
-            ax.imshow(logodd['odd'],cmap='hot')
+            ax.imshow(logodd['odd'].T,cmap='hot')
             x_map = np.ceil((p_best[0] - MAP['xmin']) / MAP['res']).astype(np.int16) - 1
             y_map = np.ceil((p_best[1] - MAP['ymin']) / MAP['res']).astype(np.int16) - 1
-            ax.arrow(x=x_map,y=y_map,dx=100*np.cos(p_best[-1]),dy=100*np.sin(p_best[-1]),head_width=30, head_length=20,color='red')
+            ax.arrow(x=y_map,y=x_map,dx=100*np.sin(p_best[-1]),dy=100*np.cos(p_best[-1]),head_width=30, head_length=20,color='red')
             x_p=np.ceil((particles['sx'] - MAP['xmin']) / MAP['res']).astype(np.int16) - 1
             y_p=np.ceil((particles['sy'] - MAP['xmin']) / MAP['res']).astype(np.int16) - 1
             ax.scatter(x_p,y_p)
@@ -107,13 +113,22 @@ if __name__=='__main__':
 
             plt.pause(1)
             plt.draw()
-            if i>n_lidar-2:
-                plt.savefig(lidar_file + '.jpg')
+            # if i>n_lidar-2:
+            #     plt.savefig(lidar_file + '.jpg')
             ax.cla()
     with open(lidar_file+'MAP.pickle', 'wb') as handle:
         pickle.dump(MAP, handle, protocol=pickle.HIGHEST_PROTOCOL)
     with open(lidar_file+'logodd.pickle', 'wb') as handle:
         pickle.dump(logodd, handle, protocol=pickle.HIGHEST_PROTOCOL)
+
+    logodd['odds'][logodd['odds'] > 0] = 1
+    logodd['odds'][logodd['odds'] == 0] = 0.5
+    logodd['odds'][logodd['odds'] < 0] = 0
+
+    plt.figure()
+    plt.imshow(logodd['odds'], cmap='gray')
+    plt.show()
+    plt.savefig(lidar_file + '.jpg')
     # plt.savefig(lidar_file+'.jpg')
 
 

@@ -143,3 +143,12 @@ def extractHead(ts_lidar,joint):
     ind_joint = findClosestJointTime(ts_joint_raw, ts_lidar)
     head_angles = joint['head_angles'].T[ind_joint]
     return ind_joint,head_angles
+
+def uvd2xyz(u,v,d,fc):
+    y = d / 1000
+    x = u / fc[1]* y
+    z = -v / fc[2]* y
+
+    return np.stack((x,y,z),axis=-1)
+
+

@@ -114,7 +114,7 @@ def Rot(theta):
     return R
 
 def scan2World(lidar_xyz, neck_angle, head_angle, pose=None, Particles=None, T_gen=None):
-
+#this transform is utilized from https://github.com/ryanoldja/ese650/blob/master/Humanoid_SLAM/p3_util.py
     if pose is not None:
 
         # use absolute (x, y) position in pose to translate from world frame to body frame,
@@ -221,9 +221,44 @@ def mapCorrelation2(range_xyz_G, Map):
     # compute particle correlations
     c = np.sum(Map['map'][ji[0], ji[1]], axis=0)
     return c
+# #
+# def mapCorrelation2(range_xyz_G, Map):
+#     '''
+#     Compute particle lidar scan correlations to current binary map.
 #
-# def xy2map(xy, Map):
-#     xy_ = xy.copy()
-#     xy_[1] *= -1
-#     ji = (Map['res'] * (xy_ + (Map['xmax']-Map['xmin'])/ 2)).astype(np.uint64)  # (x=column, y=row)
-#     return ji
+#     Input Particles: dict, particles container
+#     Input Map: dict, map container
+#     '''
+#
+#     # convert particle xy-hits to pixel space
+#     ji = xy2map(xy=range_xyz_G[:2], Map=Map)
+#
+#     # filter out hits outside the map array
+#     ji[ji >= ((Map['xmax'] - Map['xmin']) * 1/Map['res'])] = ((Map['xmax'] - Map['xmin']) * 1/Map['res']) - 1
+#
+#     # compute particle correlations
+#     c = np.linalg.norm(Map['map'][ji[1], ji[0]], axis=0)
+#     return c
+
+
+
+def xy2map(xy, Map):
+    xy_ = xy.copy()
+    xy_[1] *= -1
+    ji = (1/Map['res'] * (xy_ + (Map['xmax']-Map['xmin'])/ 2)).astype(np.uint64)  # (x=column, y=row)
+    return ji
+def uvd2xyz(u, v, d, fc):
+    y = d / 1000
+    x = u / fc[0]* y
+    z = -v / fc[1]* y
+
+    xyz = np.concatenate((x,y,z),axis=-1)
+    return xyz
+
+def xyz2uvd(x, y, z, fc):
+    d = y * 1000
+    u = x/ y * fc[0]
+    v = -z/ y * fc[1]
+
+    uvd = np.concatenate((u, v, d), axis=-1)
+    return uvd
